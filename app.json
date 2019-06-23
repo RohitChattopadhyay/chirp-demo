@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Chrip Demo",
+    "name": "Smart Lock",
     "slug": "chirp-demo",
     "privacy": "public",
     "sdkVersion": "33.0.0",
@@ -25,6 +25,9 @@
     ],
     "ios": {
       "supportsTablet": true
+    },
+    "android": {
+      "package": "com.rohitcodes.chirpgen"
     }
   }
 }

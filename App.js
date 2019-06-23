@@ -1,9 +1,9 @@
 import React, { Component } from 'react';
 import * as Font from 'expo-font'
 import base64 from 'react-native-base64'
-import { Container, Header, Content, Item, Input, Icon, H1, Button, Text } from 'native-base';
+import { Container, Header, Content, Item, Input, Icon, H1, Button, Text, Picker } from 'native-base';
 import { Audio } from 'expo-av'
-
+const env = require('./env.json');
 
 import { Ionicons } from '@expo/vector-icons';
 export default class App extends Component {
@@ -11,10 +11,11 @@ export default class App extends Component {
     super()
     this.state = {
       status: "idle",
-      err: null,
+      err: "No Error",
       loading: true,
       payload: "",
-      msg: "1234"
+      msg: "",
+      protocol: "standard"
     }
   }
   toHex = (str,hex) => {
@@ -35,18 +36,38 @@ export default class App extends Component {
       payload: this.state.msg
     },async ()=>{
         const payload = this.toHex(this.state.payload)
+        if(payload.length<3){
+          this.setState({
+            err : "Message too short"
+          })
+          return
+        }
         try{
-          let API = ""
-          let url = API + '/standard/' + payload
+          let url = `https://audio.chirp.io/v3/${this.state.protocol}/${payload}`
+          this.setState({
+            err : "",
+            status : "send"
+          })
           const playbackObject = await Audio.Sound.createAsync(
-            { uri:  url},
-            { shouldPlay: true }
-          )
+            { 
+              uri:  url,
+              headers: {
+                Authorization: "Basic " + base64.encode(env.API_KEY)
+              }
+            },
+            { shouldPlay: true },
+          ).then((sound)=>{
+            let status = sound.status
+            if(sound.isMuted)
+              this.setState({status: "error",err:"Increse Volume"})
+            else setTimeout(() => {this.setState({status: "success"})}, status.playableDurationMillis)
+          })
           return
         }
         catch(e){
             this.setState({
-              err: e
+              err: e,
+              status: "error"
             })
         }
       }
@@ -89,6 +110,20 @@ export default class App extends Component {
             <Input placeholder='Enter Data to transfer' ref="payload" value={this.state.msg}  onChangeText={(msg) => this.setState({ msg })}/>
             <Icon name={this.iconSuggester(this.state.status)} />
           </Item>
+          <Picker
+            mode="dropdown"
+            iosIcon={<Icon name="arrow-down" />}
+            placeholder="Select frequency range"
+            placeholderStyle={{ color: "#bfc6ea" }}
+            placeholderIconColor="#007aff"
+            style={{ width: undefined }}
+            onValueChange={(val) => this.setState({ protocol : val })}
+            selectedValue={this.state.protocol}
+          >
+            <Picker.Item label="Standard ( Audible )" value="standard" />
+            <Picker.Item label="Ultrasonic ( Inaudible )" value="ultrasonic" />
+            <Picker.Item label="16kHZ" value="16kHZ" />
+          </Picker>
           <Button full onPress={this.sendPayload}>
             <Text>Send</Text>
           </Button>
